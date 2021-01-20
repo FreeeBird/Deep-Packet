@@ -4,6 +4,19 @@ from scapy.layers.inet import TCP
 from scapy.packet import Padding
 from scapy.utils import rdpcap
 
+# FILE_PREFIX = ['aim', 'email', 'facebook', 'ftps',
+#                'gmail', 'hangout', 'icq', 'netflix',
+#                'scp', 'sftp', 'skype', 'spotify',
+#                'torrent', 'tor', 'vimeo', 'voip', 'youtube']
+#
+#
+# def get_app_id_from_filename(filename):
+#     for i, name in FILE_PREFIX:
+#         index = filename.index(name)
+#         if index >= 0:
+#             return index
+
+
 # for app identification
 PREFIX_TO_APP_ID = {
     # AIM chat
@@ -34,7 +47,15 @@ PREFIX_TO_APP_ID = {
     'facebookchat3': 2,
     # FTPS
     'ftps_down_1a': 3,
+    'ftps_down_1a_00000': 3,
+    'ftps_down_1a_00001': 3,
+    'ftps_down_1a_00002': 3,
+    'ftps_down_1a_00003': 3,
     'ftps_down_1b': 3,
+    'ftps_down_1b_00000': 3,
+    'ftps_down_1b_00001': 3,
+    'ftps_down_1b_00002': 3,
+    'ftps_down_1b_00003': 3,
     'ftps_up_2a': 3,
     'ftps_up_2b': 3,
     # Gmail
@@ -191,7 +212,15 @@ PREFIX_TO_TRAFFIC_ID = {
     'email2b': 1,
     # File Transfer
     'ftps_down_1a': 2,
+    'ftps_down_1a_00000': 2,
+    'ftps_down_1a_00001': 2,
+    'ftps_down_1a_00002': 2,
+    'ftps_down_1a_00003': 2,
     'ftps_down_1b': 2,
+    'ftps_down_1b_00000': 2,
+    'ftps_down_1b_00001': 2,
+    'ftps_down_1b_00002': 2,
+    'ftps_down_1b_00003': 2,
     'ftps_up_2a': 2,
     'ftps_up_2b': 2,
     'sftp1': 2,

@@ -6,22 +6,6 @@ Details in blog post: https://blog.munhou.com/2020/04/06/Pytorch-Implementation-
 
 * Clone the project
 * Download the train and test set I created at [here](https://drive.google.com/file/d/1_O2LPs3RixaErigJ_WL1Ecq83VXCXptq/view?usp=sharing), or download the [full dataset](https://www.unb.ca/cic/datasets/vpn.html) if you want to process the data from scratch.
-* Run python codes with the docker image:
-```bash
-docker run -it \
--v /path/to/the/code:/data \
-mhwong2007/deep_packet \
-bash
-```
-* If you want to run Jupyter notebook, use the following command:
-```bash
-docker run -it \
--v /path/to/the/code:/data \
--p 8888:8888 \
-mhwong2007/deep_packet \
-jupyter lab --no-browser --ip=0.0.0.0 --port=8888 --NotebookApp.token='' --allow-root
-```
-* If you want to build the environment yourself, please install the dependencies and libraries in the [Dockerfile](Dockerfile)
 
 ## Data Pre-processing
 
