@@ -1,23 +1,9 @@
 from pathlib import Path
-from scapy.layers.dns import DNS
-from scapy.layers.inet import TCP
-from scapy.packet import Padding
 from scapy.utils import rdpcap
-
-# FILE_PREFIX = ['aim', 'email', 'facebook', 'ftps',
-#                'gmail', 'hangout', 'icq', 'netflix',
-#                'scp', 'sftp', 'skype', 'spotify',
-#                'torrent', 'tor', 'vimeo', 'voip', 'youtube']
-#
-#
-# def get_app_id_from_filename(filename):
-#     for i, name in FILE_PREFIX:
-#         index = filename.index(name)
-#         if index >= 0:
-#             return index
-
-
+from packetUtil import transform_packet
 # for app identification
+
+
 PREFIX_TO_APP_ID = {
     # AIM chat
     'aim_chat_3a': 0,
@@ -322,23 +308,68 @@ ID_TO_TRAFFIC = {
     11: 'VPN: Voip',
 }
 
+ID_TO_TRAFFIC_SUM = {
+    0: 'Chat',
+    1: 'Email',
+    2: 'File Transfer',
+    3: 'Streaming',
+    4: 'Torrent',
+    5: 'Voip',
+    6: 'Chat',
+    7: 'File Transfer',
+    8: 'Email',
+    9: 'Streaming',
+    10: 'Torrent',
+    11: 'Voip',
+}
+
 
 def read_pcap(path: Path):
     packets = rdpcap(str(path))
-
     return packets
 
 
-def should_omit_packet(packet):
-    # SYN, ACK or FIN flags set to 1 and no payload
-    if TCP in packet and (packet.flags & 0x13):
-        # not payload or contains only padding
-        layers = packet[TCP].payload.layers()
-        if not layers or (Padding in layers and len(layers) == 1):
-            return True
+def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
+    if Path(str(output_path.absolute()) + '_SUCCESS').exists():
+        print(output_path, 'Done')
+        return
 
-    # DNS segment
-    if DNS in packet:
-        return True
+    print(path, 'Processing')
 
-    return False
+    rows = []
+    batch_index = 0
+    for i, packet in enumerate(read_pcap(path)):
+        arr = transform_packet(packet)
+        if arr is not None:
+            # get labels for app identification
+            prefix = path.name.split('.')[0].lower()
+            app_label = PREFIX_TO_APP_ID.get(prefix)
+            traffic_label = PREFIX_TO_TRAFFIC_ID.get(prefix)
+            traffic_sum_label = PREFIX_TO_TRAFFIC_ID.get(prefix)
+            row = {
+                'app_label': app_label,
+                'traffic_label': traffic_label,
+                'traffic_sum_label': traffic_sum_label,
+                'feature': arr.todense().tolist()[0]
+            }
+            rows.append(row)
+
+        # write every batch_size packets, by default 10000
+        if rows and i > 0 and i % output_batch_size == 0:
+            part_output_path = Path(str(output_path.absolute()) + f'_part_{batch_index:04d}.parquet')
+            df = pd.DataFrame(rows)
+            df.to_parquet(part_output_path)
+            batch_index += 1
+            rows.clear()
+
+    # final write
+    if rows:
+        df = pd.DataFrame(rows)
+        part_output_path = Path(str(output_path.absolute()) + f'_part_{batch_index:04d}.parquet')
+        df.to_parquet(part_output_path)
+
+    # write success file
+    with Path(str(output_path.absolute()) + '_SUCCESS').open('w') as f:
+        f.write('')
+
+    print(output_path, 'Done')

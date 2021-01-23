@@ -12,6 +12,67 @@ from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import col, udf, monotonically_increasing_id, lit, row_number, rand
 from pyspark.sql.types import LongType, BooleanType
 
+PROCESSED_FILE_PATH = ''
+DATASET_PATH = ''
+TEST_SIZE = 0.36
+UNDER_SAMPLING = True
+
+
+@click.command()
+@click.option('-s', '--source', help='path to the directory containing preprocessed files', required=False)
+@click.option('-t', '--target',
+              help='path to the directory for persisting train and test set for both app and traffic classification',
+              required=False)
+@click.option('--test_size', help='size of test size', type=float)
+@click.option('--under_sampling', help='under sampling training data', type=bool)
+def main(source=PROCESSED_FILE_PATH, target=DATASET_PATH, test_size=TEST_SIZE, under_sampling=UNDER_SAMPLING):
+    source_data_dir_path = Path(source)
+    target_data_dir_path = Path(target)
+
+    # prepare dir for dataset
+    application_data_dir_path = target_data_dir_path / 'application_classification'
+    traffic_data_dir_path = target_data_dir_path / 'traffic_classification'
+
+    # initialise local spark
+    os.environ['PYSPARK_PYTHON'] = sys.executable
+    os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
+    os.environ['SPARK_LOCAL_DIRS'] = ''
+    memory_gb = psutil.virtual_memory().available // 1024 // 1024 // 1024
+    spark = (
+        SparkSession
+            .builder
+            .master('local[*]')
+            .config('spark.driver.memory', f'{memory_gb}g')
+            .config('spark.driver.host', '127.0.0.1')
+            .getOrCreate()
+    )
+
+    # prepare final schema
+    schema = Unischema(
+        'data_schema', [
+            UnischemaField('feature', np.float32, (1, 1500), CompressedNdarrayCodec(), False),
+            UnischemaField('label', np.int32, (), ScalarCodec(LongType()), False),
+        ]
+    )
+
+    # read data
+    df = spark.read.parquet(f'{source_data_dir_path.absolute().as_uri()}/*.parquet')
+
+    # prepare data for application classification and traffic classification
+    print('processing application classification dataset')
+    create_train_test_for_task(df=df, label_col='app_label', spark=spark, schema=schema, test_size=test_size,
+                               under_sampling=under_sampling, data_dir_path=application_data_dir_path)
+
+    print('processing traffic classification dataset')
+    create_train_test_for_task(df=df, label_col='traffic_label', spark=spark, schema=schema, test_size=test_size,
+                               under_sampling=under_sampling, data_dir_path=traffic_data_dir_path)
+
+    # stats
+    print_df_label_distribution(spark, schema, application_data_dir_path / 'train.parquet')
+    print_df_label_distribution(spark, schema, application_data_dir_path / 'test.parquet')
+    print_df_label_distribution(spark, schema, traffic_data_dir_path / 'train.parquet')
+    print_df_label_distribution(spark, schema, traffic_data_dir_path / 'test.parquet')
+
 
 def row_generator(x):
     feature, label = x
@@ -102,6 +163,13 @@ def save_test(spark, df, path_dir, schema):
     save_parquet(spark, df, path, schema)
 
 
+def save_data_set(spark, df, path_dir, schema, mode):
+    if mode == 'train':
+        save_train(spark, df, path_dir, schema)
+    else:
+        save_test(spark, df, path_dir, schema)
+
+
 def create_train_test_for_task(df, label_col, spark, schema, test_size, under_sampling, data_dir_path):
     task_df = df.filter(col(label_col).isNotNull()).selectExpr('feature', f'{label_col} as label')
     print('splitting train test')
@@ -124,61 +192,6 @@ def print_df_label_distribution(spark, schema, path):
             .parquet(path.absolute().as_uri())
             .groupby('label').count().toPandas()
     )
-
-
-@click.command()
-@click.option('-s', '--source', help='path to the directory containing preprocessed files', required=True)
-@click.option('-t', '--target',
-              help='path to the directory for persisting train and test set for both app and traffic classification',
-              required=True)
-@click.option('--test_size', default=0.2, help='size of test size', type=float)
-@click.option('--under_sampling', default=True, help='under sampling training data', type=bool)
-def main(source, target, test_size, under_sampling):
-    source_data_dir_path = Path(source)
-    target_data_dir_path = Path(target)
-
-    # prepare dir for dataset
-    application_data_dir_path = target_data_dir_path / 'application_classification'
-    traffic_data_dir_path = target_data_dir_path / 'traffic_classification'
-
-    # initialise local spark
-    os.environ['PYSPARK_PYTHON'] = sys.executable
-    os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
-    memory_gb = psutil.virtual_memory().available // 1024 // 1024 // 1024
-    spark = (
-        SparkSession
-            .builder
-            .master('local[*]')
-            .config('spark.driver.memory', f'{memory_gb}g')
-            .config('spark.driver.host', '127.0.0.1')
-            .getOrCreate()
-    )
-
-    # prepare final schema
-    schema = Unischema(
-        'data_schema', [
-            UnischemaField('feature', np.float32, (1, 1500), CompressedNdarrayCodec(), False),
-            UnischemaField('label', np.int32, (), ScalarCodec(LongType()), False),
-        ]
-    )
-
-    # read data
-    df = spark.read.parquet(f'{source_data_dir_path.absolute().as_uri()}/*.parquet')
-
-    # prepare data for application classification and traffic classification
-    print('processing application classification dataset')
-    create_train_test_for_task(df=df, label_col='app_label', spark=spark, schema=schema, test_size=test_size,
-                               under_sampling=under_sampling, data_dir_path=application_data_dir_path)
-
-    print('processing traffic classification dataset')
-    create_train_test_for_task(df=df, label_col='traffic_label', spark=spark, schema=schema, test_size=test_size,
-                               under_sampling=under_sampling, data_dir_path=traffic_data_dir_path)
-
-    # stats
-    print_df_label_distribution(spark, schema, application_data_dir_path / 'train.parquet')
-    print_df_label_distribution(spark, schema, application_data_dir_path / 'test.parquet')
-    print_df_label_distribution(spark, schema, traffic_data_dir_path / 'train.parquet')
-    print_df_label_distribution(spark, schema, traffic_data_dir_path / 'test.parquet')
 
 
 if __name__ == '__main__':
