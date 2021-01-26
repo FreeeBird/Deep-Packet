@@ -1,7 +1,6 @@
 import os
 import time
 from scapy.all import *
-# from pcapng.scanner import FileScanner
 import numpy as np
 import multiprocessing as mp
 import pickle as pk
@@ -9,8 +8,8 @@ from utils import *
 
 lock = mp.Lock()
 counter = mp.Value('i', 0)
-# cpus = mp.cpu_count()//2
-cpus = mp.cpu_count()
+cpus = mp.cpu_count() // 2
+# cpus = mp.cpu_count()
 
 with open('objs/fileName2Application.pickle', 'rb') as f:
     dict_name2label = pk.load(f)
@@ -23,11 +22,13 @@ def pkts2X(pkts):
     X = []
     # lens = []
     for p in pkts:
+        r = transform_packet(p)
+        X.append(r)
         # ===================================
         # step 1 : remove Ether Header
         # ===================================
-        r = raw(p)[14:]
-        r = np.frombuffer(r, dtype=np.uint8)
+        # r = raw(p)[14:]
+        # r = np.frombuffer(r, dtype=np.uint8)
         # p.show()
         # ===================================
         # step 2 : pad 0 to UDP Header
@@ -35,23 +36,23 @@ def pkts2X(pkts):
         # I found some length of raw data is larger than 1500
         # remove them.
         # ===================================
-        if (TCP in p or UDP in p):
-            """
-            if UDP in p:
-                # todo : padding 0 to 
-                print ('UDP', r[:20])
-                print(p[IP].src, p[IP].dst)
-            else :
-                print('TCP', r[:20])
-                print(p[IP].src, p[IP].dst)
-            """
-            if (len(r) > 1500):
-                pass
-            else:
-                X.append(r)
-                # lens.append(len(r))
-        else:
-            pass
+        # if (TCP in p or UDP in p):
+        #     """
+        #     if UDP in p:
+        #         # todo : padding 0 to
+        #         print ('UDP', r[:20])
+        #         print(p[IP].src, p[IP].dst)
+        #     else :
+        #         print('TCP', r[:20])
+        #         print(p[IP].src, p[IP].dst)
+        #     """
+        #     if (len(r) > 1500):
+        #         pass
+        #     else:
+        #         X.append(r)
+        #         # lens.append(len(r))
+        # else:
+        #     pass
     return X  # , lens
 
 
@@ -68,17 +69,17 @@ def task(filename):
     head, tail = os.path.split(filename)
     cond1 = os.path.isfile(os.path.join('data', tail + '.pickle'))
     cond2 = os.path.isfile(os.path.join('data', tail + '_class.pickle'))
-    if (cond1 and cond2):
+    if cond1 and cond2:
         with lock:
             counter.value += 1
         print('[{}] {}'.format(counter, filename))
         return '#ALREADY#'
     X = get_data_by_file(filename)
-    if (not cond1):
+    if not cond1:
         y = [dict_name2label[tail]] * len(X)
         with open(os.path.join('data', tail + '.pickle'), 'wb') as f:
             pk.dump((X, y), f)
-    if (not cond2):
+    if not cond2:
         y2 = [dict_name2class[tail]] * len(X)
         with open(os.path.join('data', tail + '_class.pickle'), 'wb') as f:
             pk.dump(y2, f)
@@ -91,18 +92,21 @@ def task(filename):
 # =========================================
 # mp init
 # =========================================
-if __name__=='__main__':
-    start=time.time()
+
+
+if __name__ == '__main__':
+    start = time.time()
     print("CPU:", cpus)
 
-    pool=mp.Pool(processes=cpus)
+    pool = mp.Pool(processes=cpus)
 
-    todo_list = gen_todo_list('/home/rootcs412/pcaps')
-    #todo_list = todo_list[:3]
-    total_number = len(todo_list) #150
+    # todo_list = gen_todo_list('/home/rootcs412/pcaps')
+    todo_list = gen_todo_list('D:/pcaps')
+    # todo_list = todo_list[:3]
+    total_number = len(todo_list)  # 150
     done_list = []
-    #key_point
+    # key_point
     res = pool.map(task, todo_list)
     print(len(res))
-    end=time.time()
-    print('Time Used:',int((end-start)/60),'mins')
+    end = time.time()
+    print('Time Used:', int((end - start) / 60), 'mins')

@@ -380,10 +380,8 @@ def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
 
 def gen_todo_list(directory, check=None):
     files = os.listdir(directory)
-    print(files)
     todo_list = []
     for f in files:
-        print(f)
         fullpath = os.path.join(directory, f)
         if os.path.isfile(fullpath):
             if check is not None:
