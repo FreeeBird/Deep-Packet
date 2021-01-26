@@ -1,6 +1,5 @@
 from argparse import Namespace
 from pathlib import Path
-
 import numpy as np
 import torch
 from pytorch_lightning import Trainer
@@ -30,7 +29,9 @@ def train_cnn(c1_kernel_size, c1_output_dim, c1_stride, c2_kernel_size, c2_outpu
         'epoch': epoch
     })
     model = CNN(hparams).float()
-    trainer = Trainer(val_check_interval=100, max_epochs=1, gpus=gpus, logger=logger)
+
+    # trainer = Trainer(val_check_interval=100, max_epochs=1, gpus=gpus, logger=logger,accelerator="ddp2")
+    trainer = Trainer(val_check_interval=100, max_epochs=1, gpus=gpus, logger=logger, accelerator='dp')
     trainer.fit(model)
 
     # save model
@@ -38,16 +39,20 @@ def train_cnn(c1_kernel_size, c1_output_dim, c1_stride, c2_kernel_size, c2_outpu
 
 
 def train_application_classification_cnn_model(data_path, model_path, gpu):
+    # os.environ['CUDA_VISIBLE_DEVICES']='0,1'
     logger = TensorBoardLogger('application_classification_cnn_logs', 'application_classification_cnn')
+    # train_cnn(c1_kernel_size=4, c1_output_dim=200, c1_stride=3, c2_kernel_size=5, c2_output_dim=200, c2_stride=1,
+    #           output_dim=17, data_path=data_path, epoch=300, gpus=gpu, model_path=model_path, signal_length=1500,
+    #           logger=logger)
     train_cnn(c1_kernel_size=4, c1_output_dim=200, c1_stride=3, c2_kernel_size=5, c2_output_dim=200, c2_stride=1,
-              output_dim=17, data_path=data_path, epoch=300, gpus=gpu, model_path=model_path, signal_length=1500,
+              output_dim=11, data_path=data_path, epoch=300, gpus=gpu, model_path=model_path, signal_length=1500,
               logger=logger)
 
 
 def train_traffic_classification_cnn_model(data_path, model_path, gpu):
     logger = TensorBoardLogger('traffic_classification_cnn_logs', 'traffic_classification_cnn')
     train_cnn(c1_kernel_size=5, c1_output_dim=200, c1_stride=3, c2_kernel_size=4, c2_output_dim=200, c2_stride=3,
-              output_dim=12, data_path=data_path, epoch=300, gpus=gpu, model_path=model_path, signal_length=1500,
+              output_dim=12, data_path=data_path, epoch=2, gpus=gpu, model_path=model_path, signal_length=1500,
               logger=logger)
 
 

@@ -1,14 +1,14 @@
-import click
+
 
 from ml.utils import train_application_classification_cnn_model, train_traffic_classification_cnn_model
 
+DATA_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/dataset/temp_pro/application_classification/train.parquet'
+MODEL_PATH = 'model/app.cnn.model'
+MODE = 'app'
+GPU = True
 
-@click.command()
-@click.option('-d', '--data_path', help='training data dir path containing parquet files', required=True)
-@click.option('-m', '--model_path', help='output model path', required=True)
-@click.option('-t', '--task', help='classification task. Option: "app" or "traffic"', required=True)
-@click.option('--gpu', help='whether to use gpu', default=True, type=bool)
-def main(data_path, model_path, task, gpu):
+
+def main(data_path = DATA_PATH, model_path = MODEL_PATH, task = MODE, gpu = GPU):
     if gpu:
         gpu = -1
     else:

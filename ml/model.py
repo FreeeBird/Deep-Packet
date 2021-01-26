@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import torch
 from petastorm import make_reader
 from petastorm.pytorch import DataLoader
@@ -83,8 +82,8 @@ class CNN(LightningModule):
         # make sure the input is in [batch_size, channel, signal_length]
         # where channel is 1
         # signal_length is 1500 by default
+        # x = x.type_as(x)
         batch_size = x.shape[0]
-
         # 2 conv 1 max
         x = self.conv1(x)
         x = self.conv2(x)
@@ -106,6 +105,8 @@ class CNN(LightningModule):
         reader = make_reader(Path(self.data_path).absolute().as_uri(), reader_pool_type='process', workers_count=12,
                              pyarrow_serialize=True, shuffle_row_groups=True, shuffle_row_drop_partitions=2,
                              num_epochs=self.hparams.epoch)
+        # reader = make_reader(Path(self.data_path).absolute().as_uri(), shuffle_row_groups=True
+        #                      , shuffle_row_drop_partitions=2, num_epochs=self.hparams.epoch)
         dataloader = DataLoader(reader, batch_size=16, shuffling_queue_capacity=4096)
 
         return dataloader
@@ -120,6 +121,6 @@ class CNN(LightningModule):
 
         loss = {'loss': F.cross_entropy(y_hat, y)}
 
-        if (batch_idx % 50) == 0:
+        if (batch_idx % 100) == 0:
             self.logger.log_metrics(loss, step=batch_idx)
         return loss

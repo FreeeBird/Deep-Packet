@@ -1,8 +1,6 @@
 import os
 import sys
 from pathlib import Path
-
-import click
 import numpy as np
 import psutil
 from petastorm.codecs import CompressedNdarrayCodec, ScalarCodec
@@ -12,19 +10,21 @@ from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import col, udf, monotonically_increasing_id, lit, row_number, rand
 from pyspark.sql.types import LongType, BooleanType
 
-PROCESSED_FILE_PATH = ''
-DATASET_PATH = ''
-TEST_SIZE = 0.36
-UNDER_SAMPLING = True
+# PROCESSED_FILE_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/temp_pro'
+PROCESSED_FILE_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/pcap'
+DATASET_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/dataset/temp_pro'
+SPARK_LOCAL_DIRS = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/tmp'
+TEST_SIZE = 0.16
+UNDER_SAMPLING = False
 
 
-@click.command()
-@click.option('-s', '--source', help='path to the directory containing preprocessed files', required=False)
-@click.option('-t', '--target',
-              help='path to the directory for persisting train and test set for both app and traffic classification',
-              required=False)
-@click.option('--test_size', help='size of test size', type=float)
-@click.option('--under_sampling', help='under sampling training data', type=bool)
+# @click.command()
+# @click.option('-s', '--source', help='path to the directory containing preprocessed files', required=False)
+# @click.option('-t', '--target',
+#               help='path to the directory for persisting train and test set for both app and traffic classification',
+#               required=False)
+# @click.option('--test_size', help='size of test size', type=float)
+# @click.option('--under_sampling', help='under sampling training data', type=bool)
 def main(source=PROCESSED_FILE_PATH, target=DATASET_PATH, test_size=TEST_SIZE, under_sampling=UNDER_SAMPLING):
     source_data_dir_path = Path(source)
     target_data_dir_path = Path(target)
@@ -36,7 +36,7 @@ def main(source=PROCESSED_FILE_PATH, target=DATASET_PATH, test_size=TEST_SIZE, u
     # initialise local spark
     os.environ['PYSPARK_PYTHON'] = sys.executable
     os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
-    os.environ['SPARK_LOCAL_DIRS'] = ''
+    os.environ['SPARK_LOCAL_DIRS'] = SPARK_LOCAL_DIRS
     memory_gb = psutil.virtual_memory().available // 1024 // 1024 // 1024
     spark = (
         SparkSession
