@@ -7,17 +7,14 @@ import time
 lock = mp.Lock()
 counter = mp.Value('i', 0)
 
-config = {
-    'mode': 'train',
-    'debug': False,
-
-
-}
+MODE = 'train'
+DEBUG = False
+TASK_TYPE = 'app'
 
 def main():
     # load 參數
     # load 資料
-    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config)
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data()
     # normalize X
     X_train, X_val, X_test = np.array(X_train) / 255, np.array(X_val) / 255, np.array(X_test) / 255
     # 把 y 的 string 做成 one hot encoding 形式
@@ -57,12 +54,12 @@ def check(filename):
     return not '_class' in filename
 
 
-def load_data(config):
-    if config.debug:
+def load_data():
+    if DEBUG:
         max_data_nb = 10
     else:
         max_data_nb = 10000
-    directory = 'data'
+    directory = 'C:/data'
     todo_list = gen_todo_list(directory, check=check)
     ### ver 1 ###
     train_rate = 0.64
@@ -76,7 +73,8 @@ def load_data(config):
 
     for counter, filename in enumerate(todo_list):
         (tmpX, tmpy) = load(filename)
-        if config.task_type == 'class':
+        print(tmpX, tmpy)
+        if TASK_TYPE == 'class':
             tmpy = load('.'.join(filename.split('.')[:-1]) + '_class.pickle')
         tmpX, tmpy = tmpX[:max_data_nb], tmpy[:max_data_nb]
         assert (len(tmpX) == len(tmpy))

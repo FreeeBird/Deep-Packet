@@ -61,6 +61,7 @@ def transform_packet(packet):
 
 def should_omit_packet(packet):
     # SYN, ACK or FIN flags set to 1 and no payload
+    # 010011 -> 19 -> 0x13
     if TCP in packet and (packet.flags & 0x13):
         # not payload or contains only padding
         layers = packet[TCP].payload.layers()

@@ -1,10 +1,9 @@
 from pathlib import Path
 import torch
-from petastorm import make_reader
-from petastorm.pytorch import DataLoader
 from pytorch_lightning import LightningModule
 from torch import nn as nn
 from torch.nn import functional as F
+
 
 
 class CNN(LightningModule):
@@ -102,12 +101,10 @@ class CNN(LightningModule):
         return x
 
     def train_dataloader(self):
-        reader = make_reader(Path(self.data_path).absolute().as_uri(), reader_pool_type='process', workers_count=12,
-                             pyarrow_serialize=True, shuffle_row_groups=True, shuffle_row_drop_partitions=2,
-                             num_epochs=self.hparams.epoch)
+        dataset = load(config)
         # reader = make_reader(Path(self.data_path).absolute().as_uri(), shuffle_row_groups=True
         #                      , shuffle_row_drop_partitions=2, num_epochs=self.hparams.epoch)
-        dataloader = DataLoader(reader, batch_size=16, shuffling_queue_capacity=4096)
+        dataloader = DataLoader(batch_size=16, shuffling_queue_capacity=4096)
 
         return dataloader
 

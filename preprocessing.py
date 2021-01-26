@@ -5,7 +5,7 @@ from utils import transform_pcap
 PCAP_FILE_PATH = '/home/rootcs412/pcaps'
 # PCAP_FILE_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/pcap'
 PROCESSED_FILE_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/pcap'
-NUMBER_OF_JOB = -1
+NUMBER_OF_JOB = 4
 
 
 # @click.command()
