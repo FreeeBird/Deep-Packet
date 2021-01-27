@@ -139,6 +139,8 @@ PREFIX_TO_APP_ID = {
     'vimeo2': 14,
     'vimeo3': 14,
     'vimeo4': 14,
+    'vpn_vimeo_B': 14,
+    'vpn_vimeo_b': 14,
     # Voipbuster
     'voipbuster1b': 15,
     'voipbuster2b': 15,
