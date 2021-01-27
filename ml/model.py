@@ -3,7 +3,7 @@ import torch
 from pytorch_lightning import LightningModule
 from torch import nn as nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
+
 
 
 class CNN(LightningModule):
@@ -132,13 +132,13 @@ class CNN(LightningModule):
 
         return x
 
-    # def train_dataloader(self):
-    #     # reader = make_reader(Path(self.data_path).absolute().as_uri(), shuffle_row_groups=True
-    #     #                      , shuffle_row_drop_partitions=2, num_epochs=self.hparams.epoch)
-    #     dataloader = DataLoader(dataset=self.trainset, num_workers=10,pin_memory=True,
-    #                             batch_size=16,shuffle=True)
-    #
-    #     return dataloader
+    def train_dataloader(self):
+        dataset = load(config)
+        # reader = make_reader(Path(self.data_path).absolute().as_uri(), shuffle_row_groups=True
+        #                      , shuffle_row_drop_partitions=2, num_epochs=self.hparams.epoch)
+        dataloader = DataLoader(batch_size=16, shuffling_queue_capacity=4096)
+
+        return dataloader
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
