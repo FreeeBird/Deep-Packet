@@ -14,11 +14,15 @@ PREFIX_TO_APP_ID = {
     'aim_chat_3b': 0,
     'aimchat1': 0,
     'aimchat2': 0,
+    'vpn_aim_chat1a': 0,
+    'vpn_aim_chat1b': 0,
     # Email
     'email1a': 1,
     'email1b': 1,
     'email2a': 1,
     'email2b': 1,
+    'vpn_email2a': 1,
+    'vpn_email2b': 1,
     # Facebook
     'facebook_audio1a': 2,
     'facebook_audio1b': 2,
@@ -35,6 +39,9 @@ PREFIX_TO_APP_ID = {
     'facebookchat1': 2,
     'facebookchat2': 2,
     'facebookchat3': 2,
+    'vpn_facebook_audio2': 2,
+    'vpn_facebook_chat1a': 2,
+    'vpn_facebook_chat1b': 2,
     # FTPS
     'ftps_down_1a': 3,
     'ftps_down_1a_00000': 3,
@@ -48,6 +55,8 @@ PREFIX_TO_APP_ID = {
     'ftps_down_1b_00003': 3,
     'ftps_up_2a': 3,
     'ftps_up_2b': 3,
+    'vpn_ftps_a': 3,
+    'vpn_ftps_b': 3,
     # Gmail
     'gmailchat1': 4,
     'gmailchat2': 4,
@@ -64,16 +73,23 @@ PREFIX_TO_APP_ID = {
     'hangouts_video1b': 5,
     'hangouts_video2a': 5,
     'hangouts_video2b': 5,
+    'vpn_hangouts_audio1': 5,
+    'vpn_hangouts_audio2': 5,
+    'vpn_hangouts_chat1a': 5,
+    'vpn_hangouts_chat1b': 5,
     # ICQ
     'icq_chat_3a': 6,
     'icq_chat_3b': 6,
     'icqchat1': 6,
     'icqchat2': 6,
+    'vpn_icq_chat1a': 6,
+    'vpn_icq_chat1b': 6,
     # Netflix
     'netflix1': 7,
     'netflix2': 7,
     'netflix3': 7,
     'netflix4': 7,
+    'vpn_netflix_a': 7,
     # SCP
     'scp1': 8,
     'scpdown1': 8,
@@ -96,6 +112,8 @@ PREFIX_TO_APP_ID = {
     'sftpdown1': 9,
     'sftpdown2': 9,
     'sftpup1': 9,
+    'vpn_sftp_a': 9,
+    'vpn_sftp_b': 9,
     # Skype
     'skype_audio1a': 10,
     'skype_audio1b': 10,
@@ -117,13 +135,21 @@ PREFIX_TO_APP_ID = {
     'skype_video1b': 10,
     'skype_video2a': 10,
     'skype_video2b': 10,
+    'vpn_skype_chat1a': 10,
+    'vpn_skype_chat1b': 10,
+    'vpn_skype_audio1': 10,
+    'vpn_skype_audio2': 10,
+    'vpn_skype_files1a': 10,
+    'vpn_skype_files1b': 10,
     # Spotify
     'spotify1': 11,
     'spotify2': 11,
     'spotify3': 11,
     'spotify4': 11,
+    'vpn_spotify_a': 11,
     # Torrent
     'torrent01': 12,
+    'vpn_bittorrent': 12,
     # Tor
     'torfacebook': 13,
     'torgoogle': 13,
@@ -140,6 +166,7 @@ PREFIX_TO_APP_ID = {
     'vimeo3': 14,
     'vimeo4': 14,
     'vpn_vimeo_B': 14,
+    'vpn_vimeo_a': 14,
     'vpn_vimeo_b': 14,
     # Voipbuster
     'voipbuster1b': 15,
@@ -147,6 +174,8 @@ PREFIX_TO_APP_ID = {
     'voipbuster3b': 15,
     'voipbuster_4a': 15,
     'voipbuster_4b': 15,
+    'vpn_voipbuster1a': 15,
+    'vpn_voipbuster1b': 15,
     # Youtube
     'youtube1': 16,
     'youtube2': 16,
@@ -155,6 +184,7 @@ PREFIX_TO_APP_ID = {
     'youtube5': 16,
     'youtube6': 16,
     'youtubehtml5_1': 16,
+    'vpn_youtube_a': 16,
 }
 
 ID_TO_APP = {
@@ -404,3 +434,11 @@ def load(filename):
     with open(filename, 'rb') as f:
         data = pk.load(f)
     return data
+
+
+def show_time(t):
+    if t < 60:
+        re = t, ' s'
+    else:
+        re = (t / 60), 'mines'
+    return re

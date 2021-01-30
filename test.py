@@ -1,36 +1,33 @@
 import torch
 from torch import nn
-from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.dataset import TensorDataset
 import torch.nn.functional as F
 
 from DataLoaderX import DataLoaderX
 from model import CNN
+from pre_load import data_prefetcher
 from utils import *
 from sklearn.preprocessing import LabelBinarizer
 import numpy as np
 import multiprocessing as mp
 import time
 from tqdm import tqdm
-# mp.set_start_method('spawn')
+mp.set_start_method('spawn')
 lock = mp.Lock()
 counter = mp.Value('i', 0)
 
-# config
-BATCH_SIZE = 32
 MODE = 'train'
-DEBUG = False
+DEBUG = True
 TASK_TYPE = 'app'
 DATA_PATH = 'data'
-# DATA_PATH = '/media/rootcs412/ca23967d-1da3-4d21-a1cc-71b566c0cd38/data'
 MODEL_PATH = 'model/app.cnn.model'
 GPU = torch.cuda.is_available()
-EPOCH = 7
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+EPOCH = 300
+
 def main():
     X_train, y_train, X_val, y_val, X_test, y_test = load_data()
     X_train, X_val, X_test = np.array(X_train) / 255, np.array(X_val) / 255, np.array(X_test) / 255
-    y_train, y_val, y_test = np.array(y_train,dtype='int64'), np.array(y_val,dtype='int64'), np.array(y_test,dtype='int64')
+    y_train, y_val, y_test = np.array(y_train, dtype='int64'), np.array(y_val), np.array(y_test, dtype='int64')
     print('X_train size:', len(X_train), 'y_train size:', len(y_train))
     print('X_val size:', len(X_val), 'y_val size:', len(y_val))
     print('X_test size:', len(X_test), 'y_test size:', len(y_test))
@@ -61,15 +58,11 @@ def train(X_train, y_train, X_val, y_val, X_test, y_test):
     y_train = torch.from_numpy(y_train).long()
     X_test = torch.from_numpy(X_test).float()
     y_test = torch.from_numpy(y_test).long()
-    # torch.distributed.init_process_group(backend="nccl")
-    model = CNN(batch_size=BATCH_SIZE)
-    # loss_func = F.cross_entropy
-    # loss_func = loss_func.
+    model = CNN()
+    # loss_fun = F.cross_entropy
     loss_func = nn.CrossEntropyLoss().cuda()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     if GPU:
-        # model = DistributedDataParallel(model)
-        # model = nn.DataParallel(model)
         model = model.cuda()
     print('model:', model)
     print(X_train.shape)
@@ -77,41 +70,32 @@ def train(X_train, y_train, X_val, y_val, X_test, y_test):
     trainset = TensorDataset(X_train, y_train)
     # valset = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
     testset = TensorDataset(X_test, y_test)
-    test_loader = DataLoaderX(testset,batch_size=BATCH_SIZE,num_workers=32,pin_memory=True)
-    # train_size = len(X_train) / 16
-    train_loader = DataLoaderX(trainset,batch_size=BATCH_SIZE,num_workers=8,pin_memory=True,shuffle=True,drop_last=True)
+    train_loader = DataLoaderX(trainset,batch_size=16,num_workers=0,pin_memory=True,shuffle=True)
+    test_loader = DataLoaderX(testset,batch_size=16,num_workers=0,pin_memory=True)
+    train_size = len(X_train) / 16
+    preloader = data_prefetcher(train_loader)
     for epoch in tqdm(range(EPOCH)):
         print('start epoch', epoch, ' / ', EPOCH)
         running_loss = 0.0
         e_st = time.time()
+        x, y = preloader
         for i, (x, y) in enumerate(tqdm(train_loader)):
-
-            # if i >= train_size - 1 :
-            #     continue
+            if i >= train_size - 1 :
+                continue
             x = x.cuda()
             y = y.cuda()
             y_hat = model(x)
-            # print('y',y)
-            # print('y_hat', y)
             loss = loss_func(y_hat, y).cuda()
-            # print('loss:',loss)
             optimizer.zero_grad()
-            # print("y", y.shape)
-            # print("y_h", y_hat.shape)
-            # y_pre = torch.argmax(y_hat, dim=1).cuda()
-            # y_pre = torch.tensor(y_pre, dtype=torch.float)
-            # print("ypre:", y_pre.type())
-            # print("yhat:", y_hat.type())
-            # print("y:", y.type())
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
+            running_loss += loss.data.item()
             if i % 100 == 99:
                 print('[%d, %5d] loss: %.3f' %
                       (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
         e_et = time.time()
-        print('\nepoch:', epoch, ' use ', show_time(e_et-e_st))
+        print('epoch:', epoch, ' use ', show_time(e_et-e_st))
     print("Finished Training")
 
     print("Beginning Testing")
@@ -119,16 +103,11 @@ def train(X_train, y_train, X_val, y_val, X_test, y_test):
     total = 0
     for data in test_loader:
         x, y = data
-        x = x.cuda()
-        y = y.cuda()
-        print('y', y)
         y_hat = model(x.float())
-        print('y_hat',y_hat)
         _, pred = torch.max(y_hat.data, 1)
-        print('pred:', pred)
         total += y.size(0)
         correct += (pred == y).sum()
-    print('Accuracy of model on test set:%d %%' % (100 * correct // total))
+    print('Accuracy of model on test set:%d %%' % (100 * correct / total))
     # X_train, X_val = np.expand_dims(X_train, 2), np.expand_dims(X_val, 2)
 
 def check(filename):
@@ -136,10 +115,6 @@ def check(filename):
 
 
 def load_data():
-    if DEBUG:
-        max_data_nb = 100
-    else:
-        max_data_nb = 10000
     ast = time.time()
     todo_list = gen_todo_list(DATA_PATH, check=check)
     train_rate = 0.64
@@ -156,7 +131,7 @@ def load_data():
         (tmpX, tmpy) = load(filename)
         if TASK_TYPE == 'class':
             tmpy = load('.'.join(filename.split('.')[:-1]) + '_class.pickle')
-        tmpX, tmpy = tmpX[:max_data_nb], tmpy[:max_data_nb]
+        # tmpX, tmpy = tmpX[:max_data_nb], tmpy[:max_data_nb]
         assert (len(tmpX) == len(tmpy))
         tmpX = processX(tmpX)
         train_num = int(len(tmpX) * train_rate)
@@ -187,10 +162,7 @@ def processX(X):
 
 
 if __name__ == '__main__':
-    start_time = time.time()
+
     main()
-    end_time = time.time()
-    t = (end_time-start_time)/60
-    print('done. used time: %.3f ' % t)
     # (trainer, model), data, label_encoder = main()
     # (X_train, y_train_onehot, X_val, y_val_onehot, X_test, y_test_onehot) = data

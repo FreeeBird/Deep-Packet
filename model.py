@@ -8,59 +8,114 @@ from pyarrow import filesystem
 
 # base on paper in 2020
 class CNN(nn.Module):
-    def __init__(self, batch_size=256):
+    def __init__(self, batch_size=16):
         super().__init__()
         self.batch_size = batch_size
-        self.conv1 = nn.Conv1d(
-            in_channels=1,
-            out_channels=200,  # Filters
-            kernel_size=5,
-            # stride=1
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=200, kernel_size=4, stride=3),
+            nn.ReLU()
         )
-        self.conv2 = nn.Conv1d(
-            in_channels=200,
-            out_channels=100,
-            kernel_size=4,
-            # stride=1
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(in_channels=200, out_channels=100, kernel_size=5, stride=1),
+            nn.ReLU()
         )
-        self.max_pooling = nn.MaxPool1d(kernel_size=2)
-        self.fc1 = nn.Linear(600, 500)
-        self.fc2 = nn.Linear(500, 400)
-        self.fc3 = nn.Linear(400, 300)
-        self.fc4 = nn.Linear(300, 200)
-        self.fc5 = nn.Linear(200, 100)
-        self.fc6 = nn.Linear(100, 50)
-        self.out = nn.Linear(50, 17)
+        self.max_pooling = nn.MaxPool1d(kernel_size=2,stride=1)
+        # flatten, calculate the output size of max pool
+        # use a dummy input to calculate
+        # dummy_x = torch.rand(1, 1, 1500, requires_grad=False)
+        # dummy_x = self.conv1(dummy_x)
+        # dummy_x = self.conv2(dummy_x)
+        # dummy_x = self.max_pooling(dummy_x)
+        # print("dx:", dummy_x.shape)
+        # max_pool_out = dummy_x.view(1, -1).shape[1]
+        # max_pool_out = dummy_x.shape[2]
+        # print('mo:', max_pool_out)
+        self.fc0 = nn.Sequential(
+            # nn.Linear(49400, 600),
+            nn.Linear(49400, 600),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc1 = nn.Sequential(
+            nn.Linear(600, 500),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc2 = nn.Sequential(
+            nn.Linear(500, 400),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc3 = nn.Sequential(
+            nn.Linear(400, 300),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc4 = nn.Sequential(
+            nn.Linear(300, 200),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc5 = nn.Sequential(
+            nn.Linear(200, 100),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.fc6 = nn.Sequential(
+            nn.Linear(100, 50),
+            nn.Dropout(0.05),
+            nn.ReLU()
+        )
+        self.out = nn.Sequential(
+            nn.Linear(50, 17),
+            # nn.Softmax(dim=1)
+        )
 
     def forward(self, x):
+        # the input is in [batch_size, channel, signal_length]
+        # where channel is 1
+        # signal_length is 1500 by default
+        # batch_size = x.shape[0]
+        # input: torch.Size([256, 1, 1500])
+        # c1: torch.Size([256, 200, 499])
+        # cs: torch.Size([256, 100, 495])
+        # pool: torch.Size([256, 100, 247])
+        # view: torch.Size([256, 24700])
+        # fc0: torch.Size([256, 600])
+        # fc1: torch.Size([256, 500])
+        # fc2: torch.Size([256, 400])
+        # out: torch.Size([256, 17])
         # conv1D 1
+        # print("input:", x.shape)
         x = self.conv1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.05)
+        # print("c1:", x.shape)
         # conv1D 2
         x = self.conv2(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.05)
+        # print("cs:",x.shape)
         # Max Pooling
         x = self.max_pooling(x)
+
+        # print("pool:",x.shape)
         # Flatten
-        x = x.reshape(self.batch_size, -1)
+        # x = torch.squeeze(x)
+        # x = x.reshape(self.batch_size, -1)
+        x = x.view(x.size(0), -1)
+        # print("view:", x.shape)
+        x = self.fc0(x)
+        # print("fc0:", x.shape)
         # 7 FC Layer
         x = self.fc1(x)
-        x = F.relu(x)
+        # print("fc1:", x.shape)
         x = self.fc2(x)
-        x = F.relu(x)
+        # print("fc2:", x.shape)
         x = self.fc3(x)
-        x = F.relu(x)
         x = self.fc4(x)
-        x = F.relu(x)
         x = self.fc5(x)
-        x = F.relu(x)
         x = self.fc6(x)
-        x = F.relu(x)
+        # print(x.shape)
         # softmax layer
         x = self.out(x)
-        x = F.softmax(x)
+        # print("out:",x.shape)
         return x
 
 
